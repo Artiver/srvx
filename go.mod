@@ -1,4 +1,4 @@
-module server
+module srvx
 
 go 1.26.6
 

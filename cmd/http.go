@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"server/internal/httpfs"
+	"srvx/internal/httpfs"
 
 	"github.com/spf13/cobra"
 )

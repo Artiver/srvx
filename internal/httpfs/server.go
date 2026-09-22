@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"server/internal/auth"
+	"srvx/internal/auth"
 )
 
 type Server struct {

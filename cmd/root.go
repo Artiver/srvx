@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"server/internal/auth"
+	"srvx/internal/auth"
 
 	"github.com/spf13/cobra"
 )

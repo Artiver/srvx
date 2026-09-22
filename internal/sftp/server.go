@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"server/internal/auth"
+	"srvx/internal/auth"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"

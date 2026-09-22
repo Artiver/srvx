@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"server/internal/auth"
+	"srvx/internal/auth"
 
 	ftpserver "github.com/goftp/server"
 )

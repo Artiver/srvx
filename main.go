@@ -1,6 +1,6 @@
 package main
 
-import "server/cmd"
+import "srvx/cmd"
 
 func main() {
 	cmd.Execute()
