@@ -1,7 +1,7 @@
-NAME := Server
+NAME := srvx
+GO_MOD := go mod tidy
 GO_BUILD := go build -trimpath --ldflags="-s -w -buildid="
 DIRECTORY := bin
-# PLATFORMS := darwin_amd64 darwin_arm64 linux_amd64 linux_arm64 windows_amd64 windows_arm64
 PLATFORMS := linux_amd64 linux_arm64 windows_amd64
 
 $(PLATFORMS):
@@ -9,9 +9,9 @@ $(PLATFORMS):
 	$(eval GOARCH := $(word 2,$(subst _, ,$@)))
 	$(eval EXT := $(if $(filter windows,$(GOOS)),.exe,))
 ifeq ($(OS),Windows_NT)
-	set GO111MODULE=on&& set GONOSUMDB=*&& set CGO_ENABLED=0&& set GOOS=$(GOOS)&& set GOARCH=$(GOARCH)&& $(GO_BUILD) -o $(DIRECTORY)/$(NAME)_$@$(EXT) .
+	set GO111MODULE=on&& set GONOSUMDB=*&& set CGO_ENABLED=0&& set GOOS=$(GOOS)&& set GOARCH=$(GOARCH)&& $(GO_MOD) && $(GO_BUILD) -o $(DIRECTORY)/$(NAME)_$@$(EXT) .
 else
-	export GO111MODULE=on GONOSUMDB=* CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) && $(GO_BUILD) -o $(DIRECTORY)/$(NAME)_$@$(EXT) .
+	export GO111MODULE=on GONOSUMDB=* CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) && $(GO_MOD) && $(GO_BUILD) -o $(DIRECTORY)/$(NAME)_$@$(EXT) .
 endif
 
 all: $(PLATFORMS)
