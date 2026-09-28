@@ -19,6 +19,8 @@ var httpCmd = &cobra.Command{
 		opts := []httpfs.Option{}
 		if hasTLS() {
 			opts = append(opts, httpfs.WithTLS(tlsCert, tlsKey))
+		} else if hasDefaultTLS() {
+			opts = append(opts, httpfs.WithTLSBytes(defaultCert, defaultKey))
 		}
 		if httpUpload {
 			opts = append(opts, httpfs.WithUpload())

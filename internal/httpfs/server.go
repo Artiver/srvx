@@ -2,6 +2,7 @@ package httpfs
 
 import (
 	"crypto/tls"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,18 +13,24 @@ import (
 )
 
 type Server struct {
-	root   string
-	addr   string
-	auth   *auth.Store
-	cert   string
-	key    string
-	upload bool
+	root     string
+	addr     string
+	auth     *auth.Store
+	certPath string
+	keyPath  string
+	certPEM  []byte
+	keyPEM   []byte
+	upload   bool
 }
 
 type Option func(*Server)
 
 func WithTLS(cert, key string) Option {
-	return func(s *Server) { s.cert = cert; s.key = key }
+	return func(s *Server) { s.certPath = cert; s.keyPath = key }
+}
+
+func WithTLSBytes(cert, key []byte) Option {
+	return func(s *Server) { s.certPEM = cert; s.keyPEM = key }
 }
 
 func WithUpload() Option {
@@ -137,13 +144,32 @@ func (s *Server) doDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (s *Server) tlsCertificate() (tls.Certificate, bool, error) {
+	if len(s.certPEM) > 0 && len(s.keyPEM) > 0 {
+		c, err := tls.X509KeyPair(s.certPEM, s.keyPEM)
+		return c, true, err
+	}
+	if s.certPath != "" && s.keyPath != "" {
+		c, err := tls.LoadX509KeyPair(s.certPath, s.keyPath)
+		return c, true, err
+	}
+	return tls.Certificate{}, false, nil
+}
+
 func (s *Server) ListenAndServe() error {
 	handler := s.handler()
 	srv := &http.Server{Addr: s.addr, Handler: handler}
-	if s.cert != "" && s.key != "" {
-		srv.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	cert, hasCert, err := s.tlsCertificate()
+	if err != nil {
+		return fmt.Errorf("load TLS certificate: %w", err)
+	}
+	if hasCert {
+		srv.TLSConfig = &tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			Certificates: []tls.Certificate{cert},
+		}
 		log.Printf("HTTP server listening on %s (TLS)", s.addr)
-		return srv.ListenAndServeTLS(s.cert, s.key)
+		return srv.ListenAndServeTLS("", "")
 	}
 	log.Printf("HTTP server listening on %s", s.addr)
 	return srv.ListenAndServe()

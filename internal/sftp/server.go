@@ -17,12 +17,14 @@ import (
 )
 
 type Server struct {
-	root    string
-	addr    string
-	auth    *auth.Store
-	hostKey string
-	cert    string
-	key     string
+	root     string
+	addr     string
+	auth     *auth.Store
+	hostKey  string
+	certPath string
+	keyPath  string
+	certPEM  []byte
+	keyPEM   []byte
 }
 
 type Option func(*Server)
@@ -32,7 +34,11 @@ func WithHostKey(path string) Option {
 }
 
 func WithTLS(cert, key string) Option {
-	return func(s *Server) { s.cert = cert; s.key = key }
+	return func(s *Server) { s.certPath = cert; s.keyPath = key }
+}
+
+func WithTLSBytes(cert, key []byte) Option {
+	return func(s *Server) { s.certPEM = cert; s.keyPEM = key }
 }
 
 func New(root, addr string, store *auth.Store, opts ...Option) *Server {
@@ -83,15 +89,35 @@ func (s *Server) sshConfig() (*ssh.ServerConfig, error) {
 	return config, nil
 }
 
+func (s *Server) tlsCertificate() (tls.Certificate, bool, error) {
+	if len(s.certPEM) > 0 && len(s.keyPEM) > 0 {
+		c, err := tls.X509KeyPair(s.certPEM, s.keyPEM)
+		return c, true, err
+	}
+	if s.certPath != "" && s.keyPath != "" {
+		c, err := tls.LoadX509KeyPair(s.certPath, s.keyPath)
+		return c, true, err
+	}
+	return tls.Certificate{}, false, nil
+}
+
 func (s *Server) ListenAndServe() error {
 	config, err := s.sshConfig()
 	if err != nil {
 		return err
 	}
 
+	cert, hasCert, err := s.tlsCertificate()
+	if err != nil {
+		return fmt.Errorf("load TLS certificate: %w", err)
+	}
+
 	var listener net.Listener
-	if s.cert != "" && s.key != "" {
-		tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+	if hasCert {
+		tlsConfig := &tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			Certificates: []tls.Certificate{cert},
+		}
 		listener, err = tls.Listen("tcp", s.addr, tlsConfig)
 		if err != nil {
 			return err

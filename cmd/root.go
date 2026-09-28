@@ -10,11 +10,13 @@ import (
 )
 
 var (
-	rootDir  string
-	username string
-	password string
-	tlsCert  string
-	tlsKey   string
+	rootDir     string
+	username    string
+	password    string
+	tlsCert     string
+	tlsKey      string
+	defaultCert []byte
+	defaultKey  []byte
 )
 
 var rootCmd = &cobra.Command{
@@ -48,4 +50,12 @@ func buildAuthStore() *auth.Store {
 
 func hasTLS() bool {
 	return tlsCert != "" && tlsKey != ""
+}
+func hasDefaultTLS() bool {
+	return len(defaultCert) > 0 && len(defaultKey) > 0
+}
+
+func SetDefaultTLS(cert, key []byte) {
+	defaultCert = cert
+	defaultKey = key
 }
