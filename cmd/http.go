@@ -17,11 +17,6 @@ var httpCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		addr := fmt.Sprintf("0.0.0.0:%d", httpPort)
 		opts := []httpfs.Option{}
-		if hasTLS() {
-			opts = append(opts, httpfs.WithTLS(tlsCert, tlsKey))
-		} else if hasDefaultTLS() {
-			opts = append(opts, httpfs.WithTLSBytes(defaultCert, defaultKey))
-		}
 		if httpUpload {
 			opts = append(opts, httpfs.WithUpload())
 		}
