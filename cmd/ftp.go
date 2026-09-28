@@ -16,9 +16,6 @@ var ftpCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		addr := fmt.Sprintf("0.0.0.0:%d", ftpPort)
 		opts := []ftp.Option{}
-		if hasTLS() {
-			opts = append(opts, ftp.WithTLS(tlsCert, tlsKey))
-		}
 		srv := ftp.New(rootDir, addr, buildAuthStore(), opts...)
 		return srv.ListenAndServe()
 	},

@@ -16,17 +16,23 @@ import (
 )
 
 type Server struct {
-	root string
-	addr string
-	auth *auth.Store
-	cert string
-	key  string
+	root    string
+	addr    string
+	auth    *auth.Store
+	cert    string
+	key     string
+	certPEM []byte
+	keyPEM  []byte
 }
 
 type Option func(*Server)
 
 func WithTLS(cert, key string) Option {
 	return func(s *Server) { s.cert = cert; s.key = key }
+}
+
+func WithTLSBytes(cert, key []byte) Option {
+	return func(s *Server) { s.certPEM = cert; s.keyPEM = key }
 }
 
 func New(root, addr string, store *auth.Store, opts ...Option) *Server {
@@ -168,6 +174,46 @@ func (a *ftpAuth) CheckPasswd(user, pass string) (bool, error) {
 	return a.store.Check(user, pass), nil
 }
 
+func (s *Server) resolveTLSFiles() (cert, key string, cleanup func(), err error) {
+	cleanup = func() {}
+	if s.cert != "" && s.key != "" {
+		return s.cert, s.key, cleanup, nil
+	}
+	if len(s.certPEM) == 0 || len(s.keyPEM) == 0 {
+		return "", "", cleanup, nil
+	}
+
+	certFile, err := os.CreateTemp("", "srvx-ftps-*.crt")
+	if err != nil {
+		return "", "", cleanup, err
+	}
+	if _, err := certFile.Write(s.certPEM); err != nil {
+		certFile.Close()
+		os.Remove(certFile.Name())
+		return "", "", cleanup, err
+	}
+	certFile.Close()
+
+	keyFile, err := os.CreateTemp("", "srvx-ftps-*.key")
+	if err != nil {
+		os.Remove(certFile.Name())
+		return "", "", cleanup, err
+	}
+	if _, err := keyFile.Write(s.keyPEM); err != nil {
+		keyFile.Close()
+		os.Remove(keyFile.Name())
+		os.Remove(certFile.Name())
+		return "", "", cleanup, err
+	}
+	keyFile.Close()
+
+	cleanup = func() {
+		os.Remove(certFile.Name())
+		os.Remove(keyFile.Name())
+	}
+	return certFile.Name(), keyFile.Name(), cleanup, nil
+}
+
 func (s *Server) ListenAndServe() error {
 	host, port, err := net.SplitHostPort(s.addr)
 	if err != nil {
@@ -178,6 +224,12 @@ func (s *Server) ListenAndServe() error {
 		return fmt.Errorf("parse port: %w", err)
 	}
 
+	certFile, keyFile, cleanup, err := s.resolveTLSFiles()
+	if err != nil {
+		return fmt.Errorf("prepare TLS files: %w", err)
+	}
+	defer cleanup()
+
 	opts := &ftpserver.ServerOpts{
 		Factory:  &driverFactory{root: s.root},
 		Auth:     &ftpAuth{store: s.auth},
@@ -185,14 +237,16 @@ func (s *Server) ListenAndServe() error {
 		Hostname: host,
 		Port:     p,
 	}
-	if s.cert != "" && s.key != "" {
+	if certFile != "" && keyFile != "" {
 		opts.TLS = true
-		opts.CertFile = s.cert
-		opts.KeyFile = s.key
+		opts.CertFile = certFile
+		opts.KeyFile = keyFile
 		opts.ExplicitFTPS = true
+		log.Printf("FTP server listening on %s (FTPS)", s.addr)
+	} else {
+		log.Printf("FTP server listening on %s", s.addr)
 	}
 
 	srv := ftpserver.NewServer(opts)
-	log.Printf("FTP server listening on %s", s.addr)
 	return srv.ListenAndServe()
 }
