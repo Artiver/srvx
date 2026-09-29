@@ -11,6 +11,7 @@ import (
 var sftpPort int
 var sftpHostKey string
 var sftpHostKeyType string
+var sftpBanner string
 
 var sftpCmd = &cobra.Command{
 	Use:   "sftp",
@@ -32,6 +33,9 @@ var sftpCmd = &cobra.Command{
 				}
 			}
 		}
+		if sftpBanner != "" {
+			opts = append(opts, sftp.WithBanner(sftpBanner))
+		}
 		srv := sftp.New(rootDir, addr, buildAuthStore(), opts...)
 		return srv.ListenAndServe()
 	},
@@ -39,7 +43,8 @@ var sftpCmd = &cobra.Command{
 
 func init() {
 	sftpCmd.Flags().IntVarP(&sftpPort, "port", "P", 2022, "listen port")
-	sftpCmd.Flags().StringVar(&sftpHostKey, "host-key", "", "path to SSH host private key (empty = use embedded default key)")
-	sftpCmd.Flags().StringVar(&sftpHostKeyType, "host-key-type", "ed25519", "embedded default host key type: ed25519 or rsa")
+	sftpCmd.Flags().StringVar(&sftpHostKey, "key", "", "path to SSH host private key (empty = use embedded default key)")
+	sftpCmd.Flags().StringVar(&sftpHostKeyType, "type", "ed25519", "embedded default host key type: ed25519 or rsa")
+	sftpCmd.Flags().StringVar(&sftpBanner, "banner", "", "SSH banner sent to clients before authentication")
 	rootCmd.AddCommand(sftpCmd)
 }

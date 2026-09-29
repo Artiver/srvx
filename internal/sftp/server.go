@@ -19,6 +19,7 @@ type Server struct {
 	auth       *auth.Store
 	hostKey    string
 	hostKeyPEM []byte
+	banner     string
 }
 
 type Option func(*Server)
@@ -29,6 +30,10 @@ func WithHostKey(path string) Option {
 
 func WithHostKeyBytes(pem []byte) Option {
 	return func(s *Server) { s.hostKeyPEM = pem }
+}
+
+func WithBanner(banner string) Option {
+	return func(s *Server) { s.banner = banner }
 }
 
 func New(root, addr string, store *auth.Store, opts ...Option) *Server {
@@ -74,6 +79,10 @@ func (s *Server) sshConfig() (*ssh.ServerConfig, error) {
 			}
 			return nil, fmt.Errorf("password rejected for %q", c.User())
 		},
+	}
+	if s.banner != "" {
+		banner := s.banner
+		config.BannerCallback = func(ssh.ConnMetadata) string { return banner }
 	}
 	config.AddHostKey(signer)
 	return config, nil
