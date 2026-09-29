@@ -119,6 +119,8 @@ srvx nfs
 srvx nfs -P 2049 -r /data
 ```
 
+客户端连接命令 `sudo mount -t nfs -o port=2049,mountport=2049,nfsvers=3,noacl,tcp 127.0.0.1:/mount ./test/`
+
 ## 项目结构
 
 ```
