@@ -1,8 +1,6 @@
 package sftp
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
 	"log"
 	"net"
@@ -16,16 +14,21 @@ import (
 )
 
 type Server struct {
-	root    string
-	addr    string
-	auth    *auth.Store
-	hostKey string
+	root       string
+	addr       string
+	auth       *auth.Store
+	hostKey    string
+	hostKeyPEM []byte
 }
 
 type Option func(*Server)
 
 func WithHostKey(path string) Option {
 	return func(s *Server) { s.hostKey = path }
+}
+
+func WithHostKeyBytes(pem []byte) Option {
+	return func(s *Server) { s.hostKeyPEM = pem }
 }
 
 func New(root, addr string, store *auth.Store, opts ...Option) *Server {
@@ -36,28 +39,28 @@ func New(root, addr string, store *auth.Store, opts ...Option) *Server {
 	return s
 }
 
-func (s *Server) loadOrCreateHostKey() (ssh.Signer, error) {
+func (s *Server) loadHostKey() (ssh.Signer, error) {
+	var data []byte
 	if s.hostKey != "" {
-		data, err := os.ReadFile(s.hostKey)
+		b, err := os.ReadFile(s.hostKey)
 		if err != nil {
 			return nil, fmt.Errorf("read host key: %w", err)
 		}
-		signer, err := ssh.ParsePrivateKey(data)
-		if err != nil {
-			return nil, fmt.Errorf("parse host key: %w", err)
-		}
-		return signer, nil
+		data = b
+	} else if len(s.hostKeyPEM) > 0 {
+		data = s.hostKeyPEM
+	} else {
+		return nil, fmt.Errorf("no host key provided")
 	}
-	log.Println("No host key provided, generating ephemeral RSA 2048 key...")
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	signer, err := ssh.ParsePrivateKey(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse host key: %w", err)
 	}
-	return ssh.NewSignerFromKey(key)
+	return signer, nil
 }
 
 func (s *Server) sshConfig() (*ssh.ServerConfig, error) {
-	signer, err := s.loadOrCreateHostKey()
+	signer, err := s.loadHostKey()
 	if err != nil {
 		return nil, err
 	}

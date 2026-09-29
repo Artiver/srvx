@@ -19,6 +19,8 @@ var sftpCmd = &cobra.Command{
 		opts := []sftp.Option{}
 		if sftpHostKey != "" {
 			opts = append(opts, sftp.WithHostKey(sftpHostKey))
+		} else if len(defaultHostKey) > 0 {
+			opts = append(opts, sftp.WithHostKeyBytes(defaultHostKey))
 		}
 		srv := sftp.New(rootDir, addr, buildAuthStore(), opts...)
 		return srv.ListenAndServe()
@@ -27,6 +29,6 @@ var sftpCmd = &cobra.Command{
 
 func init() {
 	sftpCmd.Flags().IntVarP(&sftpPort, "port", "P", 2022, "listen port")
-	sftpCmd.Flags().StringVar(&sftpHostKey, "host-key", "", "path to SSH host private key (empty = auto-generate ephemeral key)")
+	sftpCmd.Flags().StringVar(&sftpHostKey, "host-key", "", "path to SSH host private key (empty = use embedded default key)")
 	rootCmd.AddCommand(sftpCmd)
 }

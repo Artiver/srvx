@@ -10,13 +10,14 @@ import (
 )
 
 var (
-	rootDir     string
-	username    string
-	password    string
-	tlsCert     string
-	tlsKey      string
-	defaultCert []byte
-	defaultKey  []byte
+	rootDir        string
+	username       string
+	password       string
+	tlsCert        string
+	tlsKey         string
+	defaultCert    []byte
+	defaultKey     []byte
+	defaultHostKey []byte
 )
 
 var rootCmd = &cobra.Command{
@@ -58,4 +59,7 @@ func hasDefaultTLS() bool {
 func SetDefaultTLS(cert, key []byte) {
 	defaultCert = cert
 	defaultKey = key
+}
+func SetDefaultHostKey(key []byte) {
+	defaultHostKey = key
 }
