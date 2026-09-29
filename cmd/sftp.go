@@ -20,11 +20,6 @@ var sftpCmd = &cobra.Command{
 		if sftpHostKey != "" {
 			opts = append(opts, sftp.WithHostKey(sftpHostKey))
 		}
-		if hasTLS() {
-			opts = append(opts, sftp.WithTLS(tlsCert, tlsKey))
-		} else if hasDefaultTLS() {
-			opts = append(opts, sftp.WithTLSBytes(defaultCert, defaultKey))
-		}
 		srv := sftp.New(rootDir, addr, buildAuthStore(), opts...)
 		return srv.ListenAndServe()
 	},
