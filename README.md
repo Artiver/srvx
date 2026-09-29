@@ -92,6 +92,8 @@ srvx ftps
 srvx ftps --tls-cert cert.pem --tls-key key.pem
 ```
 
+客户端连接命令 `lftp -e "set ssl:verify-certificate no; ls" -u x,x ftp://127.0.0.1:2121`
+
 ### SFTP
 
 启动 SFTP 文件服务器（默认端口 2022）。未指定 `--key` 时使用嵌入主机密钥。
