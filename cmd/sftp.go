@@ -10,6 +10,7 @@ import (
 
 var sftpPort int
 var sftpHostKey string
+var sftpHostKeyType string
 
 var sftpCmd = &cobra.Command{
 	Use:   "sftp",
@@ -19,8 +20,17 @@ var sftpCmd = &cobra.Command{
 		opts := []sftp.Option{}
 		if sftpHostKey != "" {
 			opts = append(opts, sftp.WithHostKey(sftpHostKey))
-		} else if len(defaultHostKey) > 0 {
-			opts = append(opts, sftp.WithHostKeyBytes(defaultHostKey))
+		} else {
+			switch sftpHostKeyType {
+			case "rsa":
+				if len(defaultRSAHostKey) > 0 {
+					opts = append(opts, sftp.WithHostKeyBytes(defaultRSAHostKey))
+				}
+			default:
+				if len(defaultHostKey) > 0 {
+					opts = append(opts, sftp.WithHostKeyBytes(defaultHostKey))
+				}
+			}
 		}
 		srv := sftp.New(rootDir, addr, buildAuthStore(), opts...)
 		return srv.ListenAndServe()
@@ -30,5 +40,6 @@ var sftpCmd = &cobra.Command{
 func init() {
 	sftpCmd.Flags().IntVarP(&sftpPort, "port", "P", 2022, "listen port")
 	sftpCmd.Flags().StringVar(&sftpHostKey, "host-key", "", "path to SSH host private key (empty = use embedded default key)")
+	sftpCmd.Flags().StringVar(&sftpHostKeyType, "host-key-type", "ed25519", "embedded default host key type: ed25519 or rsa")
 	rootCmd.AddCommand(sftpCmd)
 }
