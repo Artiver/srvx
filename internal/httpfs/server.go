@@ -168,7 +168,7 @@ func (s *Server) ListenAndServe() error {
 			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{cert},
 		}
-		log.Printf("HTTP server listening on %s (TLS)", s.addr)
+		log.Printf("HTTPS server listening on %s (TLS)", s.addr)
 		return srv.ListenAndServeTLS("", "")
 	}
 	log.Printf("HTTP server listening on %s", s.addr)
