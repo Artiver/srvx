@@ -69,16 +69,19 @@ func (s *Server) sshConfig() (*ssh.ServerConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	config := &ssh.ServerConfig{
-		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			if s.auth == nil || len(s.auth.Users()) == 0 {
-				return nil, nil
-			}
+	config := &ssh.ServerConfig{}
+	if s.auth == nil || len(s.auth.Users()) == 0 {
+		config.NoClientAuth = true
+		config.NoClientAuthCallback = func(ssh.ConnMetadata) (*ssh.Permissions, error) {
+			return nil, nil
+		}
+	} else {
+		config.PasswordCallback = func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			if s.auth.Check(c.User(), string(pass)) {
 				return nil, nil
 			}
 			return nil, fmt.Errorf("password rejected for %q", c.User())
-		},
+		}
 	}
 	if s.banner != "" {
 		banner := s.banner
