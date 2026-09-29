@@ -12,7 +12,7 @@ var ftpsPort int
 
 var ftpsCmd = &cobra.Command{
 	Use:   "ftps",
-	Short: "Start FTPS file server",
+	Short: "Start Explicit FTPS file server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		addr := fmt.Sprintf("0.0.0.0:%d", ftpsPort)
 		opts := []ftp.Option{}
@@ -27,6 +27,6 @@ var ftpsCmd = &cobra.Command{
 }
 
 func init() {
-	ftpsCmd.Flags().IntVarP(&ftpsPort, "port", "P", 990, "listen port")
+	ftpsCmd.Flags().IntVarP(&ftpsPort, "port", "P", 2121, "listen port")
 	rootCmd.AddCommand(ftpsCmd)
 }
