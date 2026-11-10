@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"mime"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -94,7 +95,9 @@ type readCloser struct {
 func (s *Server) verboseLog(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var b strings.Builder
-		fmt.Fprintf(&b, "request: %s %s %s\n", r.Method, r.URL.RequestURI(), r.Proto)
+		ip, port, _ := net.SplitHostPort(r.RemoteAddr)
+		fmt.Fprintf(&b, "Request from [%s]:%s\n", ip, port)
+		fmt.Fprintf(&b, "%s %s %s\n", r.Method, r.URL.RequestURI(), r.Proto)
 		fmt.Fprintf(&b, "Host: %s\n", r.Host)
 		keys := make([]string, 0, len(r.Header))
 		for k := range r.Header {
@@ -123,7 +126,7 @@ func (s *Server) verboseLog(next http.Handler) http.Handler {
 					log.Printf("read request body: %v", err)
 				}
 				r.Body = io.NopCloser(bytes.NewReader(data))
-				fmt.Fprintf(&b, "body:\n%s\n", data)
+				fmt.Fprintf(&b, "\n%s\n", data)
 			}
 		}
 		log.Print(b.String())
