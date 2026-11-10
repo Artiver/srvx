@@ -59,6 +59,7 @@ srvx http -u admin -p secret       # Basic 认证
 |------|------|--------|
 | `-P, --port` | 监听端口 | `8080` |
 | `--upload` | 启用上传(PUT)与删除(DELETE) | `false` |
+| `-v, --verbose` | 打印收到的请求头与请求体（文件类型请求体仅以十六进制打印前 100 字节） | `false` |
 
 ### HTTPS
 
@@ -73,6 +74,7 @@ srvx https --tls-cert cert.pem --tls-key key.pem
 |------|------|--------|
 | `-P, --port` | 监听端口 | `8443` |
 | `--upload` | 启用上传(PUT)与删除(DELETE) | `false` |
+| `-v, --verbose` | 打印收到的请求头与请求体（文件类型请求体仅以十六进制打印前 100 字节） | `false` |
 
 ### FTP
 

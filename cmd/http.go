@@ -10,6 +10,7 @@ import (
 
 var httpPort int
 var httpUpload bool
+var httpVerbose bool
 
 var httpCmd = &cobra.Command{
 	Use:   "http",
@@ -20,6 +21,9 @@ var httpCmd = &cobra.Command{
 		if httpUpload {
 			opts = append(opts, httpfs.WithUpload())
 		}
+		if httpVerbose {
+			opts = append(opts, httpfs.WithVerbose())
+		}
 		srv := httpfs.New(rootDir, addr, buildAuthStore(), opts...)
 		return srv.ListenAndServe()
 	},
@@ -28,5 +32,6 @@ var httpCmd = &cobra.Command{
 func init() {
 	httpCmd.Flags().IntVarP(&httpPort, "port", "P", 8080, "listen port")
 	httpCmd.Flags().BoolVar(&httpUpload, "upload", false, "enable file upload (PUT) and delete (DELETE)")
+	httpCmd.Flags().BoolVarP(&httpVerbose, "verbose", "v", false, "log received request headers and body")
 	rootCmd.AddCommand(httpCmd)
 }

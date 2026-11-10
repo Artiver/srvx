@@ -1,16 +1,23 @@
 package httpfs
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"srvx/internal/auth"
 )
+
+const verboseBodyLimit = 100
 
 type Server struct {
 	root     string
@@ -21,6 +28,7 @@ type Server struct {
 	certPEM  []byte
 	keyPEM   []byte
 	upload   bool
+	verbose  bool
 }
 
 type Option func(*Server)
@@ -35,6 +43,10 @@ func WithTLSBytes(cert, key []byte) Option {
 
 func WithUpload() Option {
 	return func(s *Server) { s.upload = true }
+}
+
+func WithVerbose() Option {
+	return func(s *Server) { s.verbose = true }
 }
 
 func New(root, addr string, store *auth.Store, opts ...Option) *Server {
@@ -68,7 +80,80 @@ func (s *Server) handler() http.Handler {
 	} else {
 		mux.Handle("/", s.basicAuth(http.FileServer(http.Dir(s.root))))
 	}
+	if s.verbose {
+		return s.verboseLog(mux)
+	}
 	return mux
+}
+
+type readCloser struct {
+	io.Reader
+	io.Closer
+}
+
+func (s *Server) verboseLog(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var b strings.Builder
+		fmt.Fprintf(&b, "request: %s %s %s\n", r.Method, r.URL.RequestURI(), r.Proto)
+		fmt.Fprintf(&b, "Host: %s\n", r.Host)
+		keys := make([]string, 0, len(r.Header))
+		for k := range r.Header {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			for _, v := range r.Header.Values(k) {
+				fmt.Fprintf(&b, "%s: %s\n", k, v)
+			}
+		}
+		if r.Body != nil && r.Body != http.NoBody {
+			ct := r.Header.Get("Content-Type")
+			if isFileContentType(ct) {
+				prefix := make([]byte, verboseBodyLimit)
+				n, err := io.ReadFull(r.Body, prefix)
+				if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
+					log.Printf("read request body: %v", err)
+				}
+				prefix = prefix[:n]
+				r.Body = &readCloser{Reader: io.MultiReader(bytes.NewReader(prefix), r.Body), Closer: r.Body}
+				fmt.Fprintf(&b, "body (%s, hex, first %d bytes):\n%s", ct, n, hex.Dump(prefix))
+			} else {
+				data, err := io.ReadAll(r.Body)
+				if err != nil {
+					log.Printf("read request body: %v", err)
+				}
+				r.Body = io.NopCloser(bytes.NewReader(data))
+				fmt.Fprintf(&b, "body:\n%s\n", data)
+			}
+		}
+		log.Print(b.String())
+		next.ServeHTTP(w, r)
+	})
+}
+
+func isFileContentType(ct string) bool {
+	if ct == "" {
+		return false
+	}
+	mt, _, err := mime.ParseMediaType(ct)
+	if err != nil {
+		mt = strings.TrimSpace(strings.SplitN(ct, ";", 2)[0])
+	}
+	mt = strings.ToLower(mt)
+	switch {
+	case strings.HasPrefix(mt, "text/"):
+		return false
+	case mt == "application/json",
+		mt == "application/xml",
+		mt == "application/xhtml+xml",
+		mt == "application/javascript",
+		mt == "application/x-javascript",
+		mt == "application/x-www-form-urlencoded",
+		mt == "application/yaml",
+		mt == "application/x-yaml":
+		return false
+	}
+	return true
 }
 
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
